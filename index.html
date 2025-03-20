@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Body Fluid Simulation</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+        }
+        canvas {
+            display: block;
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            width: 350px;
+            z-index: 100;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .controls h3 {
+            margin-top: 0;
+            color: #4FC3F7;
+            font-weight: 500;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .controls button {
+            flex: 1;
+            padding: 12px;
+            background: #2a2a2a;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s ease, transform 0.1s ease;
+            min-width: 80px;
+        }
+        .controls button:hover {
+            background: #3a3a3a;
+            transform: translateY(-2px);
+        }
+        .controls button:active {
+            transform: translateY(1px);
+        }
+        .slider-container {
+            margin: 16px 0;
+        }
+        label {
+            display: inline-block;
+            width: 150px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        input[type="range"] {
+            width: 150px;
+            vertical-align: middle;
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.2);
+            height: 6px;
+            border-radius: 3px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4FC3F7;
+            cursor: pointer;
+        }
+        .value-display {
+            display: inline-block;
+            width: 40px;
+            text-align: right;
+            font-family: monospace;
+            color: #4FC3F7;
+        }
+        .status {
+            color: #4caf50;
+            margin-top: 15px;
+            font-size: 13px;
+            height: 20px;
+        }
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            text-align: center;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-width: 300px;
+        }
+        .loading .spinner {
+            margin: 20px auto;
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.2);
+            border-top-color: #4FC3F7;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .color-selector {
+            display: flex;
+            align-items: center;
+            margin: 16px 0;
+        }
+        .color-selector label {
+            width: 150px;
+        }
+        .color-selector input[type="color"] {
+            width: 30px;
+            height: 30px;
+            border: none;
+            border-radius: 4px;
+            background: none;
+            cursor: pointer;
+        }
+        .checkbox-container {
+            margin: 16px 0;
+            display: flex;
+            align-items: center;
+        }
+        .checkbox-container label {
+            width: auto;
+            margin-left: 10px;
+        }
+        .version-info {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            font-size: 12px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading">
+        <div>Initializing Advanced Fluid Simulation</div>
+        <div class="spinner"></div>
+        <div style="font-size: 14px; margin-top: 10px;">
+            Please allow camera access when prompted.
+        </div>
+    </div>
+
+    <div class="controls">
+        <h3>Body Fluid Simulation</h3>
+        
+        <div class="button-group">
+            <button id="start-btn">Start Camera</button>
+            <button id="reset-btn">Reset Particles</button>
+            <button id="debug-btn">Debug View</button>
+        </div>
+        
+        <div class="slider-container">
+            <label for="particle-size">Particle Size:</label>
+            <input type="range" id="particle-size" min="0.01" max="0.2" step="0.01" value="0.05">
+            <span id="size-value" class="value-display">0.05</span>
+        </div>
+        
+        <div class="slider-container">
+            <label for="particle-opacity">Particle Opacity:</label>
+            <input type="range" id="particle-opacity" min="0.1" max="1.0" step="0.05" value="0.6">
+            <span id="opacity-value" class="value-display">0.6</span>
+        </div>
+        
+        <div class="slider-container">
+            <label for="particle-count">Particle Count:</label>
+            <input type="range" id="particle-count" min="1000" max="10000" step="1000" value="5000">
+            <span id="count-value" class="value-display">5000</span>
+        </div>
+        
+        <div class="slider-container">
+            <label for="viscosity">Fluid Viscosity:</label>
+            <input type="range" id="viscosity" min="0.9" max="0.99" step="0.01" value="0.97">
+            <span id="viscosity-value" class="value-display">0.97</span>
+        </div>
+        
+        <div class="color-selector">
+            <label for="particle-color">Particle Color:</label>
+            <input type="color" id="particle-color" value="#4FC3F7">
+        </div>
+        
+        <div class="checkbox-container">
+            <input type="checkbox" id="use-shaders" checked>
+            <label for="use-shaders">Use Advanced Shaders</label>
+        </div>
+        
+        <div class="checkbox-container">
+            <input type="checkbox" id="color-variation" checked>
+            <label for="color-variation">Color Variation</label>
+        </div>
+        
+        <div class="checkbox-container">
+            <input type="checkbox" id="glow-effect" checked>
+            <label for="glow-effect">Glow Effect</label>
+        </div>
+        
+        <div class="status" id="status">Waiting to initialize...</div>
+    </div>
+    
+    <div class="version-info">
+        Enhanced Fluid Simulation v2.0
+    </div>
+
+    <!-- Required libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r132/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/posenet@2.2.2/dist/posenet.min.js"></script>
+    
+    <!-- Main script -->
+    <script src="fluid-simulation.js"></script>
+    
+    <script>
+        // Wait for the libraries to load
+        window.addEventListener('DOMContentLoaded', () => {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = 'Ready. Click "Start Camera" to begin.';
+            
+            // Start button
+            document.getElementById('start-btn').addEventListener('click', async () => {
+                try {
+                    document.getElementById('loading').style.display = 'block';
+                    
+                    // Call the init function exposed from the fluid simulation
+                    if (window.fluidFunctions && window.fluidFunctions.init) {
+                        await window.fluidFunctions.init();
+                    } else {
+                        statusEl.textContent = 'Error: Fluid simulation not loaded properly.';
+                        console.error('Fluid simulation functions not available');
+                        document.getElementById('loading').style.display = 'none';
+                    }
+                } catch (error) {
+                    statusEl.textContent = 'Error initializing: ' + error.message;
+                    console.error('Initialization error:', error);
+                    document.getElementById('loading').style.display = 'none';
+                }
+            });
+            
+            // Reset button
+            document.getElementById('reset-btn').addEventListener('click', () => {
+                try {
+                    if (window.fluidFunctions && window.fluidFunctions.resetParticles) {
+                        window.fluidFunctions.resetParticles();
+                    }
+                } catch (error) {
+                    console.error('Reset error:', error);
+                }
+            });
+            
+            // Debug view toggle
+            document.getElementById('debug-btn').addEventListener('click', () => {
+                try {
+                    if (window.fluidFunctions && window.fluidFunctions.toggleDebugView) {
+                        window.fluidFunctions.toggleDebugView();
+                    }
+                } catch (error) {
+                    console.error('Debug view toggle error:', error);
+                }
+            });
+            
+            // Size slider
+            const sizeSlider = document.getElementById('particle-size');
+            const sizeValue = document.getElementById('size-value');
+            sizeSlider.addEventListener('input', () => {
+                const value = parseFloat(sizeSlider.value);
+                sizeValue.textContent = value.toFixed(2);
+                try {
+                    if (window.fluidFunctions && window.fluidFunctions.updateParticleSize) {
+                        window.fluidFunctions.updateParticleSize(value);
+                    }
+                } catch (error) {
+                    console.error('Size update error:', error);
+                }
+            });
+            
+            // Opacity slider
+            const opacitySlider = document.getElementById('particle-opacity');
+            const opacityValue = document.getElementById('opacity-value');
+            opacitySlider.addEventListener('input', () => {
+                const value = parseFloat(opacitySlider.value);
+                opacityValue.textContent = value.toFixed(2);
+                try {
+                    if (window.fluidFunctions && window.fluidFunctions.updateParticleOpacity) {
+                        window.fluidFunctions.updateParticleOpacity(value);
+                    }
+                } catch (error) {
+                    console.error('Opacity update error:', error);
+                }
+            });
+            
+            // Count slider
+            const countSlider = document.getElementById('particle-count');
+            const countValue = document.getElementById('count-value');
+            countSlider.addEventListener('change', () => {
+                const value = parseInt(countSlider.value);
+                countValue.textContent = value;
+                try {
+                    if (window.fluidFunctions && window.fluidFunctions.updateParticleCount) {
+                        window.fluidFunctions.updateParticleCount(value);
+                    }
+                } catch (error) {
+                    console.error('Count update error:', error);
+                }
+            });
+            
+            // Viscosity slider
+            const viscositySlider = document.getElementById('viscosity');
+            const viscosityValue = document.getElementById('viscosity-value');
+            viscositySlider.addEventListener('input', () => {
+                const value = parseFloat(viscositySlider.value);
+                viscosityValue.textContent = value.toFixed(2);
+                try {
+                    if (window.fluidFunctions && window.fluidFunctions.updateViscosity) {
+                        window.fluidFunctions.updateViscosity(value);
+                    }
+                } catch (error) {
+                    console.error('Viscosity update error:', error);
+                }
+            });
+            
+            // Particle color input
+            const colorInput = document.getElementById('particle-color');
+            colorInput.addEventListener('change', () => {
+                try {
+                    if (window.fluidFunctions && window.fluidFunctions.updateParticleColor) {
+                        window.fluidFunctions.updateParticleColor(colorInput.value);
+                    }
+                } catch (error) {
+                    console.error('Color update error:', error);
+                }
+            });
+            
+            // Shader toggle
+            const shaderToggle = document.getElementById('use-shaders');
+            shaderToggle.addEventListener('change', () => {
+                try {
+                    if (window.fluidFunctions && window.fluidFunctions.toggleShaders) {
+                        window.fluidFunctions.toggleShaders(shaderToggle.checked);
+                    }
+                } catch (error) {
+                    console.error('Shader toggle error:', error);
+                }
+            });
+            
+            // Color variation toggle
+            const colorVarToggle = document.getElementById('color-variation');
+            colorVarToggle.addEventListener('change', () => {
+                try {
+                    if (window.fluidFunctions && window.fluidFunctions.toggleColorVariation) {
+                        window.fluidFunctions.toggleColorVariation(colorVarToggle.checked);
+                    }
+                } catch (error) {
+                    console.error('Color variation toggle error:', error);
+                }
+            });
+            
+            // Glow effect toggle
+            const glowToggle = document.getElementById('glow-effect');
+            glowToggle.addEventListener('change', () => {
+                try {
+                    if (window.fluidFunctions && window.fluidFunctions.toggleGlowEffect) {
+                        window.fluidFunctions.toggleGlowEffect(glowToggle.checked);
+                    }
+                } catch (error) {
+                    console.error('Glow effect toggle error:', error);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

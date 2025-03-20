@@ -1,0 +1,15 @@
+{
+  "name": "fluid-simulation",
+  "version": "1.0.0",
+  "description": "",
+  "main": "fluid-simulation.js",
+  "scripts": {
+    "start": "http-server -o"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
